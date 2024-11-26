@@ -1,67 +1,75 @@
-// Function to determine marker size based on magnitude
-function getMarkerSize(magnitude) {
-    return magnitude ? magnitude * 4 : 1; // Adjust size multiplier as needed
-}
+// Get your dataset. To do so, follow these steps:
 
-// Function to determine color based on depth
-function getColor(depth) {
-    if (depth <= 30) {
-        return '#ffffb2'; // Shallow (light yellow)
-    } else if (depth <= 70) {
-        return '#ffbf00'; // Moderate (orange)
-    } else {
-        return '#ff0000'; // Deep (red)
-    }
-}
+// The USGS provides earthquake data in a number of different formats, updated every 5 minutes. Visit the USGS GeoJSON FeedLinks to an 
+// external site. page and choose a dataset to visualize. The following image is an example screenshot of what appears when you visit 
+// this link:
 
-// Initialize the map
-let map = L.map('map').setView([37.09, -95.71], 5); // Center the map on the US
-
-// Add a tile layer
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
-
-// Fetch significant earthquake data from the USGS GeoJSON feed using D3
-d3.json('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson')
-    .then(data => {
-        // Loop through the features in the GeoJSON data
-        data.features.forEach(feature => {
-            let coords = feature.geometry.coordinates;
-            let magnitude = feature.properties.mag;
-            let depth = coords[2]; // Depth is the third coordinate
-            let popupContent = `<h3>${feature.properties.title}</h3><p>Magnitude: ${magnitude}<br>Depth: ${depth} km</p>`;
-
-            // Create a circle marker for each earthquake
-            L.circleMarker([coords[1], coords[0]], {
-                radius: getMarkerSize(magnitude),
-                fillColor: getColor(depth), // Use the modified getColor function
-                color: '#000',
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).bindPopup(popupContent).addTo(map);
-        });
-
-        // Create a legend
-        let legend = L.control({ position: 'bottomright' });
-
-        legend.onAdd = function () {
-            let div = L.DomUtil.create('div', 'info legend');
-            let depths = [0, 30, 70, 90];
-            let labels = [];
-
-            // Loop through depth intervals and generate a label with a colored square
-            for (let i = 0; i < depths.length; i++) {
-                div.innerHTML +=
-                    '<i style="background:' + getColor(depths[i] + 1) + '"></i> ' +
-                    depths[i] + (depths[i + 1] ? '&ndash;' + depths[i + 1] + ' km' : '+ km') + '<br>';
-            }
-            return div;
-        };
-
-        legend.addTo(map);
-    })
-    .catch(error => {
-        console.error("Error fetching earthquake data: ", error);
+// Create a map
+const myMap = L.map("map", {
+    center: [37.7749, -122.4194], // San Francisco coordinates
+    zoom: 4
     });
+    
+    // Add a tile layer to the map
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(myMap);
+    
+    // URL to the USGS GeoJSON API
+    const url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+    
+    // Fetch the earthquake data from the USGS GeoJSON API
+    d3.json(url).then(function (data) {
+        // Loop through the features in the GeoJSON data
+        data.features.forEach(function (feature) {
+          // Extract coordinates, magnitude, and depth from each earthquake feature
+          let coordinates = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]];
+          let magnitude = feature.properties.mag;
+          let depth = feature.geometry.coordinates[2];
+    
+          // Create a circle marker with size and color based on magnitude and depth
+        L.circle(coordinates, {
+            radius: magnitude * 10000,
+            color: getColor(depth),
+            fillColor: getColor(depth),
+            fillOpacity: 0.8
+          }).bindPopup(`<h3>${feature.properties.place}</h3><hr><p>Magnitude: ${magnitude}<br>Depth: ${depth}</p>`).addTo(myMap);
+        });
+    
+        // Create a legend
+      let legend = L.control({ position: 'bottomright' });
+      legend.onAdd = function () {
+        let div = L.DomUtil.create('div', 'info legend');
+    
+        // Add a white background to the div
+        div.style.backgroundColor = 'white';
+        div.style.padding = '10px';
+    
+        // Assign colors to the legend
+        div.innerHTML += '<div style="background:' + getColor(0) + ';height:10px;width:10px; display: inline-block;"></div> 0-10<br>';
+        div.innerHTML += '<div style="background:' + getColor(10) + ';height:10px;width:10px; display: inline-block;"></div> 10-30<br>';
+        div.innerHTML += '<div style="background:' + getColor(30) + ';height:10px;width:10px; display: inline-block;"></div> 30-50<br>';
+        div.innerHTML += '<div style="background:' + getColor(50) + ';height:10px;width:10px; display: inline-block;"></div> 50-70<br>';
+        div.innerHTML += '<div style="background:' + getColor(70) + ';height:10px;width:10px; display: inline-block;"></div> 70-90<br>';
+        div.innerHTML += '<div style="background:' + getColor(90) + ';height:10px;width:10px; display: inline-block;"></div> 90+<br>';
+    
+        return div;
+      };
+      legend.addTo(myMap);
+    });
+    
+    // Function to determine color based on depth
+    function getColor(depth) {
+        if (depth < 10) {
+          return "#00ff00"; // Green
+        } else if (depth < 30) {
+          return "#ffff00"; // Yellow
+        } else if (depth < 50) {
+          return "#ff9900"; // Orange
+        } else if (depth < 70) {
+          return "#ff0000"; // Red
+        } else {
+          return "#990000"; // Dark Red
+        }
+      }
+    
